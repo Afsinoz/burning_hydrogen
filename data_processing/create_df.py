@@ -4,6 +4,13 @@ from netCDF4 import Dataset
 
 
 def nc_to_dfs(files):
+    """
+    Read in a list of .nc files for chlorophyll-a concentration on distinct days
+    from AQUA-MODIS dataset. Return a 3d numpy array chlor_a recording the
+    chlorophyll-a concentration by latitude and longitude and day. Return
+    two 2d numpy arrays lat, lon recording the latitude and longitude for
+    the entries of chlor_a.
+    """
     directory_path = Path.cwd()
     file_paths = [directory_path / file_name for file_name in files]
     datasets = [Dataset(file_path) for file_path in file_paths]

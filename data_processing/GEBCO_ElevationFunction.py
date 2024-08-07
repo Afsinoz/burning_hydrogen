@@ -12,6 +12,9 @@ import sys
 #   Elevation (relative to mean sea level)
 #
 #
+#   Reference: https://github.com/MikeHudgell/GEBCO
+#
+#
 def geo_idx(degd, degd_array):
     #   
     #

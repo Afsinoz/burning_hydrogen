@@ -8,7 +8,7 @@ dates_to_process = list(pd.date_range('2024-01-01', '2024-01-03'))
 date_strings = [st.strftime('%Y%m%d') for st in dates_to_process]
 
 directory_path = Path.cwd() / 'output'
-file_paths = [directory_path / 'AQUA_MODIS.{}.L3m.DAY.CHL.chlor_a.4km.nc'.format(date)
+file_paths = [directory_path / 'AQUA_MODIS.{}.L3m.DAY.CHL.chlor_a.9km.nc'.format(date)
               for date in date_strings]
 datasets = [Dataset(file_path) for file_path in file_paths]
 

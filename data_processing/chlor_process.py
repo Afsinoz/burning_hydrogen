@@ -3,14 +3,14 @@ import numpy as np
 from netCDF4 import Dataset
 from pathlib import Path
 import datetime
+import os
 
-dates_to_process = list(pd.date_range('2024-01-01', '2024-01-03'))
-date_strings = [st.strftime('%Y%m%d') for st in dates_to_process]
-
-directory_path = Path.cwd() / 'output'
-file_paths = [directory_path / 'AQUA_MODIS.{}.L3m.DAY.CHL.chlor_a.9km.nc'.format(date)
-              for date in date_strings]
-datasets = [Dataset(file_path) for file_path in file_paths]
+directory_path = Path(
+    '/Users/alexanderrasmussen/library/cloudstorage/GoogleDrive-ajrmath@gmail.com/My Drive/erdos/better_resolution')
+file_names = [file_name for file_name in
+              sorted(os.listdir(directory_path))]
+file_paths = [directory_path /
+              file_name for file_name in file_names]
 
 lon_vals = np.arange(-100, 5, 5)
 def lon_round_up(lon): return lon_vals[np.argmax(lon < lon_vals)]
@@ -20,10 +20,13 @@ lat_vals = np.arange(-15, 40, 5)
 def lat_round_up(lat): return lat_vals[np.argmax(lat < lat_vals)]
 
 
-dfs = [None] * len(datasets)
+dfs = [None] * len(file_paths)
 
-for i, ds in enumerate(datasets):
+for i, path in enumerate(file_paths):
+    ds = Dataset(path)
     date = pd.to_datetime(ds.time_coverage_start, yearfirst=True)
+    print(date)
+
     fill_value = ds.variables['chlor_a']._FillValue
 
     chlor_a = np.array(ds.variables['chlor_a'])
@@ -55,6 +58,7 @@ for i, ds in enumerate(datasets):
     df.reset_index(inplace=True)
 
     dfs[i] = df
+    df.to_csv('./chlor_data/chlor-{}.csv'.format(ds.time_coverage_start[:10]))
 
 full_df = pd.concat(dfs, axis=0)
 full_df.reset_index(inplace=True)

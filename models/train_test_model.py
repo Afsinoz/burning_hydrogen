@@ -32,7 +32,8 @@ o2_df = o2_df[o2_df.date >= '2021-11-30']
 full_df = pd.merge(o2_df, geo_df, on=['date', 'lon_rounded_up', 'lat_rounded_up', 'depth'],
                    how='outer')
 
-full_df = full_df.groupby(by=['date', 'lon_rounded_up', 'lat_rounded_up']).mean()
+full_df = full_df.groupby(
+    by=['date', 'lon_rounded_up', 'lat_rounded_up']).mean()
 full_df.reset_index(inplace=True)
 full_df.drop('depth', axis=1, inplace=True)
 
@@ -42,20 +43,20 @@ full_df_multi = full_df.set_index(['date', 'lon_rounded_up', 'lat_rounded_up'])
 lag_features = []
 
 for feature in the_features:
-    for i in range(1,8):
+    for i in range(1, 31):
         lag_features.append(feature + f'_lag_{i}')
         full_df_multi[feature + f'_lag_{i}'] = \
-            full_df_multi.groupby(level=[1,2])[feature].shift(i)
+            full_df_multi.groupby(level=[1, 2])[feature].shift(i)
 
 lead_features = []
 for feature in the_features:
-    for i in range(1,31):
+    for i in range(1, 31):
         lead_features.append(feature + f'_lead_{i}')
         full_df_multi[feature + f'_lead_{i}'] = \
-            full_df_multi.groupby(level=[1,2])[feature].shift(-i)
+            full_df_multi.groupby(level=[1, 2])[feature].shift(-i)
 
-dates_to_remove = pd.date_range('2021-11-30', periods=7).tolist() + \
-        pd.date_range(end='2024-03-31', periods=30).tolist()
+dates_to_remove = pd.date_range('2021-11-30', periods=30).tolist() + \
+    pd.date_range(end='2024-03-31', periods=30).tolist()
 dates_to_remove = [ts.strftime('%Y-%m-%d') for ts in dates_to_remove]
 
 full_df_multi.drop(level=0, axis=0, labels=dates_to_remove, inplace=True)
@@ -63,8 +64,10 @@ full_df_multi.drop(level=0, axis=0, labels=dates_to_remove, inplace=True)
 dates = full_df_multi.index.levels[0].to_list()
 dates = [date for date in dates if date not in dates_to_remove]
 
-dates_train, dates_test_full = train_test_split(dates, test_size=0.4, shuffle=False)
-dates_valid, dates_test = train_test_split(dates_test_full, test_size=0.5, shuffle=False)
+dates_train, dates_test_full = train_test_split(
+    dates, test_size=0.4, shuffle=False)
+dates_valid, dates_test = train_test_split(
+    dates_test_full, test_size=0.5, shuffle=False)
 
 full_df_multi.dropna(axis=0, how='all', inplace=True)
 X = full_df_multi.drop(lead_features, axis=1)
@@ -95,6 +98,6 @@ model.fit(X_train, y_train)
 y_pred = model.predict(X_valid)
 
 for i in range(30):
-    err = np.sqrt(mean_squared_error(y_pred[:,i], y_valid.iloc[:,i]))
+    err = np.sqrt(mean_squared_error(y_pred[:, i], y_valid.iloc[:, i]))
     print(f'Day: {i}')
     print(f'Average oxygen prediction error: {err}')

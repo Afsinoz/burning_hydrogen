@@ -5,6 +5,11 @@ from pathlib import Path
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
+from sklearn.multioutput import MultiOutputRegressor
+from xgboost import XGBRegressor
+
+num_lag = 60
+num_lead = 30
 
 o2_dir = Path('../data/daily_data/o2_raw')
 o2_files = sorted(os.listdir(o2_dir))
@@ -43,20 +48,20 @@ full_df_multi = full_df.set_index(['date', 'lon_rounded_up', 'lat_rounded_up'])
 lag_features = []
 
 for feature in the_features:
-    for i in range(1, 31):
+    for i in range(1, num_lag + 1):
         lag_features.append(feature + f'_lag_{i}')
         full_df_multi[feature + f'_lag_{i}'] = \
             full_df_multi.groupby(level=[1, 2])[feature].shift(i)
 
 lead_features = []
 for feature in the_features:
-    for i in range(1, 31):
+    for i in range(1, num_lead + 1):
         lead_features.append(feature + f'_lead_{i}')
         full_df_multi[feature + f'_lead_{i}'] = \
             full_df_multi.groupby(level=[1, 2])[feature].shift(-i)
 
-dates_to_remove = pd.date_range('2021-11-30', periods=30).tolist() + \
-    pd.date_range(end='2024-03-31', periods=30).tolist()
+dates_to_remove = pd.date_range('2021-11-30', periods=num_lag).tolist() + \
+    pd.date_range(end='2024-03-31', periods=num_lead).tolist()
 dates_to_remove = [ts.strftime('%Y-%m-%d') for ts in dates_to_remove]
 
 full_df_multi.drop(level=0, axis=0, labels=dates_to_remove, inplace=True)
@@ -92,12 +97,20 @@ for df in [X_train, X_valid, X_test]:
 for df in [y_train, y_valid, y_test]:
     df.drop(['date', 'lon_rounded_up', 'lat_rounded_up'], axis=1, inplace=True)
 
-model = LinearRegression()
-model.fit(X_train, y_train)
+lin_model = LinearRegression()
+lin_model.fit(X_train, y_train)
 
-y_pred = model.predict(X_valid)
+y_fit = lin_model.predict(X_train)
+y_pred = lin_model.predict(X_valid)
+y_resid = y_train - y_fit
 
-for i in range(30):
-    err = np.sqrt(mean_squared_error(y_pred[:, i], y_valid.iloc[:, i]))
+xgb_model = MultiOutputRegressor(XGBRegressor())
+xgb_model.fit(X_train, y_resid)
+
+y_fit_boosted = xgb_model.predict(X_train) + y_fit
+y_pred_boosted = xgb_model.predict(X_valid) + y_pred
+
+for i in range(num_lead):
+    err = np.sqrt(mean_squared_error(y_pred_boosted[:, i], y_valid.iloc[:, i]))
     print(f'Day: {i}')
     print(f'Average oxygen prediction error: {err}')

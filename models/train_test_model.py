@@ -8,8 +8,8 @@ from sklearn.metrics import mean_squared_error
 from sklearn.multioutput import MultiOutputRegressor
 from xgboost import XGBRegressor
 
-num_lag = 60
-num_lead = 30
+num_lag = 10
+num_lead = 10
 
 o2_dir = Path('../data/daily_data/o2_raw')
 o2_files = sorted(os.listdir(o2_dir))
@@ -36,6 +36,19 @@ o2_df = o2_df[o2_df.date >= '2021-11-30']
 
 full_df = pd.merge(o2_df, geo_df, on=['date', 'lon_rounded_up', 'lat_rounded_up', 'depth'],
                    how='outer')
+
+depth_df = pd.read_csv('../data/Mean_Depth_Data.csv')
+depth_df.drop('Unnamed: 0', inplace=True, axis=1)
+depth_df['Longitude'] = (depth_df['Longitude'] + 5).astype(int)
+depth_df['Latitude'] = (depth_df['Latitude'] + 5).astype(int)
+depth_df.rename({
+    'Longitude': 'lon_rounded_up',
+    'Latitude': 'lat_rounded_up',
+    'Mean_Elevation': 'elevation'
+}, axis=1, inplace=True)
+
+full_df = pd.merge(full_df, depth_df, on=['lon_rounded_up', 'lat_rounded_up'],
+                   how='left')
 
 full_df = full_df.groupby(
     by=['date', 'lon_rounded_up', 'lat_rounded_up']).mean()
@@ -74,7 +87,7 @@ dates_train, dates_test_full = train_test_split(
 dates_valid, dates_test = train_test_split(
     dates_test_full, test_size=0.5, shuffle=False)
 
-full_df_multi.dropna(axis=0, how='all', inplace=True)
+full_df_multi.dropna(axis=0, how='any', inplace=True)
 X = full_df_multi.drop(lead_features, axis=1)
 y = full_df_multi[lead_features]
 

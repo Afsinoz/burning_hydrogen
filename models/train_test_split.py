@@ -7,21 +7,21 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 from sklearn.multioutput import MultiOutputRegressor
 from xgboost import XGBRegressor
+from varname import nameof
 
-num_lag = 10
-num_lead = 10
+num_lag = 30
+num_lead = 30
 
 o2_dir = Path('../data/daily_data/o2_raw')
 o2_files = sorted(os.listdir(o2_dir))
-
-o2_files.remove('.DS_Store')
+o2_files = [file for file in o2_files if file[0] != '.']
 o2_dfs = [pd.read_csv(o2_dir / file) for file in o2_files]
 o2_df = pd.concat(o2_dfs, axis=0)
 o2_df.drop('Unnamed: 0', inplace=True, axis=1)
 
 geo_dir = Path('../data/daily_data/geo_raw')
 geo_files = sorted(os.listdir(geo_dir))
-geo_files.remove('.DS_Store')
+geo_files = [file for file in geo_files if file[0] != '.']
 geo_files.remove('readme.txt')
 geo_dfs = [pd.read_csv(geo_dir / file) for file in geo_files]
 geo_df = pd.concat(geo_dfs, axis=0)
@@ -60,15 +60,16 @@ the_features = ['o2', 'chl', 'no3', 'po4', 'si']
 full_df_multi = full_df.set_index(['date', 'lon_rounded_up', 'lat_rounded_up'])
 lag_features = []
 
-for feature in the_features:
-    for i in range(1, num_lag + 1):
+for i in range(1, num_lag + 1):
+    for feature in the_features:
         lag_features.append(feature + f'_lag_{i}')
         full_df_multi[feature + f'_lag_{i}'] = \
             full_df_multi.groupby(level=[1, 2])[feature].shift(i)
 
 lead_features = []
-for feature in the_features:
-    for i in range(1, num_lead + 1):
+
+for i in range(1, num_lead + 1):
+    for feature in the_features:
         lead_features.append(feature + f'_lead_{i}')
         full_df_multi[feature + f'_lead_{i}'] = \
             full_df_multi.groupby(level=[1, 2])[feature].shift(-i)
@@ -78,52 +79,36 @@ dates_to_remove = pd.date_range('2021-11-30', periods=num_lag).tolist() + \
 dates_to_remove = [ts.strftime('%Y-%m-%d') for ts in dates_to_remove]
 
 full_df_multi.drop(level=0, axis=0, labels=dates_to_remove, inplace=True)
+full_df_multi.reset_index(inplace=True)
+full_df_multi.dropna(axis=0, how='any', inplace=True)
 
-dates = full_df_multi.index.levels[0].to_list()
-dates = [date for date in dates if date not in dates_to_remove]
+base_date = pd.to_datetime(full_df_multi.date[0])
+full_df_multi.date = pd.to_datetime(full_df_multi.date) - base_date
+full_df_multi.date = full_df_multi.date.dt.days.astype(int)
+
+dates = full_df_multi.date.unique()
 
 dates_train, dates_test_full = train_test_split(
     dates, test_size=0.4, shuffle=False)
 dates_valid, dates_test = train_test_split(
     dates_test_full, test_size=0.5, shuffle=False)
 
-full_df_multi.dropna(axis=0, how='any', inplace=True)
 X = full_df_multi.drop(lead_features, axis=1)
-y = full_df_multi[lead_features]
+y = full_df_multi[['date'] + lead_features]
 
-X_train = X.loc[dates_train]
-y_train = y.loc[dates_train]
-X_valid = X.loc[dates_valid]
-y_valid = y.loc[dates_valid]
-X_test = X.loc[dates_test]
-y_test = y.loc[dates_test]
-
-for df in [X_train, y_train, X_valid, y_valid, X_test, y_test]:
-    df.reset_index(inplace=True)
-
-base_date = pd.to_datetime(dates[0])
-
-for df in [X_train, X_valid, X_test]:
-    df.date = pd.to_datetime(df.date) - base_date
-    df.date = df.date.dt.days
+X_train = X.loc[(X.date >= dates_train[0]) & (X.date <= dates_train[-1])]
+y_train = y.loc[(X.date >= dates_train[0]) & (X.date <= dates_train[-1])]
+X_valid = X.loc[(X.date >= dates_valid[0]) & (X.date <= dates_valid[-1])]
+y_valid = y.loc[(X.date >= dates_valid[0]) & (X.date <= dates_valid[-1])]
+X_test = X.loc[(X.date >= dates_test[0]) & (X.date <= dates_test[-1])]
+y_test = y.loc[(X.date >= dates_test[0]) & (X.date <= dates_test[-1])]
 
 for df in [y_train, y_valid, y_test]:
-    df.drop(['date', 'lon_rounded_up', 'lat_rounded_up'], axis=1, inplace=True)
+    df.drop('date', axis=1, inplace=True)
 
-lin_model = LinearRegression()
-lin_model.fit(X_train, y_train)
-
-y_fit = lin_model.predict(X_train)
-y_pred = lin_model.predict(X_valid)
-y_resid = y_train - y_fit
-
-xgb_model = MultiOutputRegressor(XGBRegressor())
-xgb_model.fit(X_train, y_resid)
-
-y_fit_boosted = xgb_model.predict(X_train) + y_fit
-y_pred_boosted = xgb_model.predict(X_valid) + y_pred
-
-for i in range(num_lead):
-    err = np.sqrt(mean_squared_error(y_pred_boosted[:, i], y_valid.iloc[:, i]))
-    print(f'Day: {i}')
-    print(f'Average oxygen prediction error: {err}')
+X_train.to_csv('./splits/X_train.csv')
+y_train.to_csv('./splits/y_train.csv')
+X_valid.to_csv('./splits/X_valid.csv')
+y_valid.to_csv('./splits/y_valid.csv')
+X_test.to_csv('./splits/X_test.csv')
+y_test.to_csv('./splits/y_test.csv')

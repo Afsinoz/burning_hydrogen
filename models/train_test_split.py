@@ -9,8 +9,8 @@ from sklearn.multioutput import MultiOutputRegressor
 from xgboost import XGBRegressor
 from varname import nameof
 
-num_lag = 30
-num_lead = 30
+num_lag = 2
+num_lead = 2
 
 o2_dir = Path('../data/daily_data/o2_raw')
 o2_files = sorted(os.listdir(o2_dir))

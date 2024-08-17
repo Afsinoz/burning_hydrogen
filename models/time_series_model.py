@@ -5,15 +5,15 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import Lasso
 from sklearn.metrics import mean_squared_error
 from sklearn.multioutput import RegressorChain
-from sklearn.base import BaseEstimator, ClassifierMixin
+from sklearn.base import BaseEstimator, RegressorMixin
 from xgboost import XGBRegressor
 import os
 
-num_lag = 30
-num_lead = 30
+num_lag = 2
+num_lead = 2
 
 
-class XGBOnLinReg(BaseEstimator, ClassifierMixin):
+class XGBOnLinReg(BaseEstimator, RegressorMixin):
     def __init__(self, alpha=1.0, fit_intercept=True, precompute=False,
                  copy_X=True, max_iter=1000, tol=0.0001, warm_start=False,
                  positive=False, selection='cyclic',

@@ -3,6 +3,7 @@ import pandas as pd
 import os
 from pathlib import Path
 from sklearn.model_selection import train_test_split
+import pickle
 
 num_lag = 60
 num_lead = 30
@@ -111,7 +112,20 @@ full_df = pd.merge(full_df, temp_df, on=['date', 'lon_rounded_up', 'lat_rounded_
 full_df = pd.merge(full_df, depth_df, on=['lon_rounded_up', 'lat_rounded_up'],
                    how='left')
 
-the_features = ['chl', 'no3', 'po4', 'si', 'salinity', 'temp']
+the_features = ['chl', 'no3', 'po4', 'si', 'salinity', 'temp', 'o2']
+
+feature_dict = {}
+for feature in the_features:
+    feature_dict[feature] = {
+        'mean': full_df[feature].mean(),
+        'std': full_df[feature].std()
+    }
+    full_df[feature] = (
+        full_df[feature] - full_df[feature].mean()) / full_df[feature].std()
+
+the_file = open('./splits/features.pkl', 'ab')
+pickle.dump(feature_dict, the_file)
+the_file.close()
 
 full_df_multi = full_df.set_index(['date', 'lon_rounded_up', 'lat_rounded_up'])
 lag_features = []

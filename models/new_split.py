@@ -4,8 +4,8 @@ import os
 from pathlib import Path
 from sklearn.model_selection import train_test_split
 
-num_lag = 2
-num_lead = 2
+num_lag = 60
+num_lead = 30
 
 o2_dir = Path('../data/daily_data/o2_raw')
 o2_files = sorted(os.listdir(o2_dir))
@@ -13,6 +13,11 @@ o2_files = [file for file in o2_files if file[0] != '.']
 o2_dfs = [pd.read_csv(o2_dir / file) for file in o2_files]
 o2_df = pd.concat(o2_dfs, axis=0)
 o2_df.drop('Unnamed: 0', inplace=True, axis=1)
+
+o2_df = o2_df.groupby(
+    by=['date', 'lon_rounded_up', 'lat_rounded_up']).mean()
+o2_df.reset_index(inplace=True)
+o2_df.drop('depth', axis=1, inplace=True)
 
 geo_dir = Path('../data/daily_data/geo_raw')
 geo_files = sorted(os.listdir(geo_dir))
@@ -27,10 +32,58 @@ geo_df.drop(['longitude_bins', 'latitude_bins'], axis=1, inplace=True)
 geo_df = geo_df[geo_df.time <= '2024-03-31']
 geo_df.rename({'time': 'date'}, axis=1, inplace=True)
 
-o2_df = o2_df[o2_df.date >= '2021-11-30']
+geo_df = geo_df.groupby(
+    by=['date', 'lon_rounded_up', 'lat_rounded_up']).mean()
+geo_df.reset_index(inplace=True)
+geo_df.drop('depth', axis=1, inplace=True)
 
-full_df = pd.merge(o2_df, geo_df, on=['date', 'lon_rounded_up', 'lat_rounded_up', 'depth'],
-                   how='outer')
+sal_dir = Path('../data/daily_data/Salinity_data')
+sal_files = sorted(os.listdir(sal_dir))
+sal_files = [file for file in sal_files if file[0] != '.']
+sal_dfs = [pd.read_csv(sal_dir / file) for file in sal_files]
+for df in sal_dfs:
+    df.rename({
+        'Salinity': 'salinity'
+    }, inplace=True, axis=1)
+sal_df = pd.concat(sal_dfs, axis=0)
+
+sal_df = sal_df[(sal_df.longitude != 0.0) & (sal_df.latitude != 35.0)]
+sal_df.longitude = (sal_df.longitude + 5).astype(int)
+sal_df.latitude = (sal_df.latitude + 5).astype(int)
+sal_df.rename({
+    'time': 'date',
+    'longitude': 'lon_rounded_up',
+    'latitude': 'lat_rounded_up'
+}, inplace=True, axis=1)
+
+sal_df = sal_df.groupby(
+    by=['date', 'lon_rounded_up', 'lat_rounded_up']).mean()
+sal_df.reset_index(inplace=True)
+sal_df.drop('depth', axis=1, inplace=True)
+
+temp_dir = Path('../data/daily_data/Temp')
+temp_files = sorted(os.listdir(temp_dir))
+temp_files = [file for file in temp_files if file[0] != '.']
+temp_dfs = [pd.read_csv(temp_dir / file) for file in temp_files]
+for df in temp_dfs:
+    df.rename({
+        'Temp': 'temp'
+    }, inplace=True, axis=1)
+temp_df = pd.concat(temp_dfs, axis=0)
+
+temp_df = temp_df[(temp_df.longitude != 0.0) & (temp_df.latitude != 35.0)]
+temp_df.longitude = (temp_df.longitude + 5).astype(int)
+temp_df.latitude = (temp_df.latitude + 5).astype(int)
+temp_df.rename({
+    'time': 'date',
+    'longitude': 'lon_rounded_up',
+    'latitude': 'lat_rounded_up'
+}, inplace=True, axis=1)
+
+temp_df = temp_df.groupby(
+    by=['date', 'lon_rounded_up', 'lat_rounded_up']).mean()
+temp_df.reset_index(inplace=True)
+temp_df.drop('depth', axis=1, inplace=True)
 
 depth_df = pd.read_csv('../data/Mean_Depth_Data.csv')
 depth_df.drop('Unnamed: 0', inplace=True, axis=1)
@@ -42,15 +95,23 @@ depth_df.rename({
     'Mean_Elevation': 'elevation'
 }, axis=1, inplace=True)
 
+o2_df = o2_df[(o2_df.date >= '2021-11-30') & (o2_df.date <= '2024-03-31')]
+geo_df = geo_df[(geo_df.date >= '2021-11-30') & (geo_df.date <= '2024-03-31')]
+sal_df = sal_df[(sal_df.date >= '2021-11-30') & (sal_df.date <= '2024-03-31')]
+temp_df = temp_df[(temp_df.date >= '2021-11-30') &
+                  (temp_df.date <= '2024-03-31')]
+
+
+full_df = pd.merge(o2_df, geo_df, on=['date', 'lon_rounded_up', 'lat_rounded_up'],
+                   how='outer')
+full_df = pd.merge(full_df, sal_df, on=['date', 'lon_rounded_up', 'lat_rounded_up'],
+                   how='outer')
+full_df = pd.merge(full_df, temp_df, on=['date', 'lon_rounded_up', 'lat_rounded_up'],
+                   how='outer')
 full_df = pd.merge(full_df, depth_df, on=['lon_rounded_up', 'lat_rounded_up'],
                    how='left')
 
-full_df = full_df.groupby(
-    by=['date', 'lon_rounded_up', 'lat_rounded_up']).mean()
-full_df.reset_index(inplace=True)
-full_df.drop('depth', axis=1, inplace=True)
-
-the_features = ['o2', 'chl', 'no3', 'po4', 'si']
+the_features = ['chl', 'no3', 'po4', 'si', 'salinity', 'temp']
 
 full_df_multi = full_df.set_index(['date', 'lon_rounded_up', 'lat_rounded_up'])
 lag_features = []
@@ -76,6 +137,8 @@ dates_to_remove = [ts.strftime('%Y-%m-%d') for ts in dates_to_remove]
 full_df_multi.drop(level=0, axis=0, labels=dates_to_remove, inplace=True)
 full_df_multi.reset_index(inplace=True)
 full_df_multi.dropna(axis=0, how='any', inplace=True)
+
+full_df_multi.to_csv('./splits/dataset.csv')
 
 base_date = pd.to_datetime(full_df_multi.date[0])
 full_df_multi.date = pd.to_datetime(full_df_multi.date) - base_date

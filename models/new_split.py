@@ -5,8 +5,8 @@ from pathlib import Path
 from sklearn.model_selection import train_test_split
 import pickle
 
-num_lag = 60
-num_lead = 30
+num_lag = 1
+num_lead = 1
 
 o2_dir = Path('../data/daily_data/o2_raw')
 o2_files = sorted(os.listdir(o2_dir))

@@ -9,8 +9,8 @@ from sklearn.base import BaseEstimator, RegressorMixin
 from xgboost import XGBRegressor
 import os
 
-num_lag = 2
-num_lead = 2
+num_lag = 1
+num_lead = 1
 
 
 class XGBOnLinReg(BaseEstimator, RegressorMixin):
@@ -75,19 +75,20 @@ class XGBOnLinReg(BaseEstimator, RegressorMixin):
         return self.lin_reg.predict(X) + self.xgb_reg.predict(X)
 
 
-X_train = pd.read_csv('./splits/X_train.csv')
-y_train = pd.read_csv('./splits/y_train.csv')
-X_valid = pd.read_csv('./splits/X_valid.csv')
-y_valid = pd.read_csv('./splits/y_valid.csv')
-X_test = pd.read_csv('./splits/X_test.csv')
-y_test = pd.read_csv('./splits/y_test.csv')
+if __name__ == "__main__":
+    X_train = pd.read_csv('./splits/X_train.csv')
+    y_train = pd.read_csv('./splits/y_train.csv')
+    X_valid = pd.read_csv('./splits/X_valid.csv')
+    y_valid = pd.read_csv('./splits/y_valid.csv')
+    X_test = pd.read_csv('./splits/X_test.csv')
+    y_test = pd.read_csv('./splits/y_test.csv')
 
+    model = RegressorChain(XGBOnLinReg())
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_valid)
 
-model = RegressorChain(XGBOnLinReg())
-model.fit(X_train, y_train)
-y_pred = model.predict(X_valid)
-
-for i in range(num_lead):
-    err = np.sqrt(mean_squared_error(y_pred[:, 5 * i], y_valid.iloc[:, 5 * i]))
-    print(f'Day: {i}')
-    print(f'Average oxygen prediction error: {err}')
+    for i in range(num_lead):
+        err = np.sqrt(mean_squared_error(
+            y_pred[:, 5 * i], y_valid.iloc[:, 5 * i]))
+        print(f'Day: {i}')
+        print(f'Average oxygen prediction error: {err}')

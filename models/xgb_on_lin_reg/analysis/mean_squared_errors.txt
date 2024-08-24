@@ -1,0 +1,60 @@
+Day: 1
+Root mean squared error: 0.09315
+Day: 2
+Root mean squared error: 0.11470
+Day: 3
+Root mean squared error: 0.13917
+Day: 4
+Root mean squared error: 0.15670
+Day: 5
+Root mean squared error: 0.17385
+Day: 6
+Root mean squared error: 0.18131
+Day: 7
+Root mean squared error: 0.20234
+Day: 8
+Root mean squared error: 0.20070
+Day: 9
+Root mean squared error: 0.21343
+Day: 10
+Root mean squared error: 0.22877
+Day: 11
+Root mean squared error: 0.22689
+Day: 12
+Root mean squared error: 0.23676
+Day: 13
+Root mean squared error: 0.24951
+Day: 14
+Root mean squared error: 0.26139
+Day: 15
+Root mean squared error: 0.26462
+Day: 16
+Root mean squared error: 0.28770
+Day: 17
+Root mean squared error: 0.29881
+Day: 18
+Root mean squared error: 0.30862
+Day: 19
+Root mean squared error: 0.31220
+Day: 20
+Root mean squared error: 0.31869
+Day: 21
+Root mean squared error: 0.31821
+Day: 22
+Root mean squared error: 0.32541
+Day: 23
+Root mean squared error: 0.33280
+Day: 24
+Root mean squared error: 0.33930
+Day: 25
+Root mean squared error: 0.35338
+Day: 26
+Root mean squared error: 0.35916
+Day: 27
+Root mean squared error: 0.35538
+Day: 28
+Root mean squared error: 0.36322
+Day: 29
+Root mean squared error: 0.37809
+Day: 30
+Root mean squared error: 0.37154

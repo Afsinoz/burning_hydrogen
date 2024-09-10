@@ -1,7 +1,6 @@
 import numpy as np
 import torch
 import torch.nn as nn
-from torch.nn import functional as F
 
 
 class ConvLSTMCell(nn.Module):
@@ -50,8 +49,11 @@ class ConvLSTMCell(nn.Module):
 
 class EncoderDecoderConvLSTM(nn.Module):
 
-    def __init__(self, nf, in_chan, out_chan):
+    def __init__(self, nf=24, in_chan=8, out_chan=1, past_steps=11, future_steps=future_steps, dropout_prob=0.5):
         super(EncoderDecoderConvLSTM, self).__init__()
+
+        self.past_steps = past_steps
+        self.future_steps = future_steps
 
         self.encoder_1_convlstm = ConvLSTMCell(input_dim=in_chan,
                                                hidden_dim=nf,
@@ -63,6 +65,8 @@ class EncoderDecoderConvLSTM(nn.Module):
                                                kernel_size=(3, 3),
                                                bias=True)
 
+        self.batchnorm1 = nn.BatchNorm2d(num_features=nf)
+
         self.decoder_1_convlstm = ConvLSTMCell(input_dim=nf,
                                                hidden_dim=nf,
                                                kernel_size=(3, 3),
@@ -73,15 +77,25 @@ class EncoderDecoderConvLSTM(nn.Module):
                                                kernel_size=(3, 3),
                                                bias=True)
 
+        self.batchnorm2 = nn.BatchNorm3d(num_features=nf)
+
+        self.encoder_dropouts = [nn.Dropout(
+            p=dropout_prob) for i in range(self.past_steps)]
+
+        self.decoder_dropouts = [nn.Dropout(
+            p=dropout_prob) for i in range(self.future_steps)]
+
         self.decoder_CNN = nn.Conv3d(in_channels=nf,
                                      out_channels=out_chan,
                                      kernel_size=(1, 3, 3),
                                      padding=(0, 1, 1))
 
-    def autoencoder(self, x, past_steps, future_steps, h_t, c_t, h_t2, c_t2, h_t3, c_t3, h_t4, c_t4):
+    def autoencoder(self, x, h_t, c_t, h_t2, c_t2, h_t3, c_t3, h_t4, c_t4):
         outputs = []
 
-        for t in range(past_steps):
+        for i, t in enumerate(range(self.past_steps)):
+            h_t = self.encoder_dropouts[i](h_t)
+
             h_t, c_t = self.encoder_1_convlstm(input_tensor=x[:, t, :, :],
                                                cur_state=[h_t, c_t])
             h_t2, c_t2 = self.encoder_2_convlstm(input_tensor=h_t,
@@ -89,7 +103,11 @@ class EncoderDecoderConvLSTM(nn.Module):
 
         encoder_vector = h_t2
 
-        for t in range(future_steps):
+        encoder_vector = self.batchnorm1(encoder_vector)
+
+        for i, t in enumerate(range(self.future_steps)):
+            encoder_vector = self.decoder_dropouts[i](encoder_vector)
+
             h_t3, c_t3 = self.decoder_1_convlstm(input_tensor=encoder_vector,
                                                  cur_state=[h_t3, c_t3])
             h_t4, c_t4 = self.decoder_2_convlstm(input_tensor=h_t3,
@@ -99,13 +117,17 @@ class EncoderDecoderConvLSTM(nn.Module):
 
         outputs = torch.stack(outputs, 1)
         outputs = outputs.permute(0, 2, 1, 3, 4)
+        outputs = self.batchnorm2(outputs)
         outputs = self.decoder_CNN(outputs)
         outputs = outputs.permute(0, 2, 1, 3, 4)
 
         return outputs
 
-    def forward(self, x, future_steps=30, hidden_state=None):
-        b, past_steps, _, h, w = x.size()
+    def forward(self, x, hidden_state=None):
+        x_id_future = torch.stack(
+            self.future_steps * [x[:, -1, 1, :, :].unsqueeze(1)], 1)
+
+        b, _, _, h, w = x.size()
 
         h_t, c_t = self.encoder_1_convlstm.init_hidden(
             batch_size=b, image_size=(h, w))
@@ -116,7 +138,7 @@ class EncoderDecoderConvLSTM(nn.Module):
         h_t4, c_t4 = self.decoder_2_convlstm.init_hidden(
             batch_size=b, image_size=(h, w))
 
-        outputs = self.autoencoder(x, past_steps, future_steps, h_t, c_t, h_t2, c_t2,
+        outputs = self.autoencoder(x, h_t, c_t, h_t2, c_t2,
                                    h_t3, c_t3, h_t4, c_t4)
 
-        return outputs
+        return outputs + x_id_future

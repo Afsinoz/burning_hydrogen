@@ -49,7 +49,8 @@ class ConvLSTMCell(nn.Module):
 
 class EncoderDecoderConvLSTM(nn.Module):
 
-    def __init__(self, nf=24, in_chan=8, out_chan=1, past_steps=11, future_steps=future_steps, dropout_prob=0.5):
+    def __init__(self, nf=24, in_chan=8, out_chan=1, past_steps=11,
+                 future_steps=30, dropout_prob=0.5):
         super(EncoderDecoderConvLSTM, self).__init__()
 
         self.past_steps = past_steps

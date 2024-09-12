@@ -1,8 +1,10 @@
 import pandas as pd
 import numpy as np
 
+# Create a numpy array from the dataframe dataset_reordered.csv
+
 # Open dataset_reordered.csv
-df = pd.read_csv('./splits/dataset_reordered.csv')
+df = pd.read_csv('dataset_reordered.csv')
 df.drop('Unnamed: 0', axis=1, inplace=True)
 
 # Create copy of df with multi-index
@@ -45,6 +47,6 @@ X = output[:, :11, :, :, :]
 y = output[:, 11:, :, :, :]
 
 # Save the arrays.
-np.save('./splits/dataset.npy', output)
-np.save('./splits/X.npy', X)
-np.save('./splits/y.npy', y)
+np.save('dataset.npy', output)
+np.save('X.npy', X)
+np.save('y.npy', y)

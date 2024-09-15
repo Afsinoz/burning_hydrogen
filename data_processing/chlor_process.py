@@ -5,6 +5,7 @@ from pathlib import Path
 import datetime
 import os
 
+# Load the daily chlorophyll data
 directory_path = Path(
     '/Users/alexanderrasmussen/library/cloudstorage/GoogleDrive-ajrmath@gmail.com/My Drive/erdos/better_resolution')
 file_names = [file_name for file_name in
@@ -12,14 +13,17 @@ file_names = [file_name for file_name in
 file_paths = [directory_path /
               file_name for file_name in file_names]
 
+# Function to round longitude up a number in the range -100, -95, ..., 0
 lon_vals = np.arange(-100, 5, 5)
 def lon_round_up(lon): return lon_vals[np.argmax(lon < lon_vals)]
 
 
+# Function to round latitude up a number in the range -15, -10, ..., 35
 lat_vals = np.arange(-15, 40, 5)
 def lat_round_up(lat): return lat_vals[np.argmax(lat < lat_vals)]
 
 
+# Dataframes to hold the information from the files
 dfs = [None] * len(file_paths)
 
 for i, path in enumerate(file_paths):

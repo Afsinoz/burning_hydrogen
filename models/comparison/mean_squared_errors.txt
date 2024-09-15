@@ -1,0 +1,4 @@
+Baseline mean squared error: 0.06396
+Conv3d mean squared error: 0.06258
+ConvLSTM mean squared error: 0.05177
+Encoder-decoder mean squared error: 0.04950

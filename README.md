@@ -27,7 +27,7 @@ Additionally, we graciously acknowledge PyTorch models modified from the followi
 In this project we examine ocean deoxygenation. The goal is to identify early indicators for ocean deoxygenation. Towards this goal, we trained models both to (1) predict oxygen concentration using other ocean variables and (2) predict oxygen concentration up to 60 days in the future using past data on oxygen and other ocean variables. Our models are equipped to handle data from the region from -100 degrees to 0 degrees latitude and -35 degrees latitude to 15 degrees latitude, gridded into 5 degree x 5 degree bins. The variables used in our models are: depth, temperature, salinity, chlorophyll-a concentration, O2 concentration, NO3 concentration, PO4 concentration, and Si concentration. The models can variously handle tabular data (pandas DataFrames) or array data (numpy arrays, PyTorch tensors). We discuss the folders in this repository below.
 
 ## data
-This folder contains all of our data sources, stored as csv files.
+This folder contains all of our data sources (processed or un-processed), stored as csv files.
 
 ## data_processing
 This folder contains various files for downloading data from the internet, processing data into DataFrames, or merging several DataFrames together.

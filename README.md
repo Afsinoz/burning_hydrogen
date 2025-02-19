@@ -1,3 +1,8 @@
+# Save the Ocean! Models for prediction fishing market and Marine health 
+
+This project aimed to create prediction models to address problems caused by climate change. The main objective was to design and implement prediction models for sea surface oxygen levels, one of many fundamental issues in oceans today. You can find the sources and methods we used to make the predictions below.
+
+
 We graciously acknowledge usage of data from the following sources:
 
 ### GEBCO - The General Bathymetric Chart of the Oceans
